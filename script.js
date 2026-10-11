@@ -10,7 +10,14 @@ const COLOURS = {
   [POWERUP]: "#ffb8ae",
 };
 
-const PACMAN = "#ffff00";
+const PACMAN    = "#ffff00";
+
+const BLINKY = "#ff0f00";
+const PINKY = "#ffb8ff";
+const INKY = "#00ffff";
+const CLYDE = "#ffb852";
+
+const SPEED = 1/15;
 
 const TILESIZE = 24;
 
@@ -52,10 +59,9 @@ const DRAW_OFFSET = [-1, 0];
 
 class Pacman {
   constructor(game) {
-    this.x = 13.5;
+    this.x = 14.5;
     this.y = 23;
     this.direction = [0, 0];
-    this.speed = 1/15;
     this.game = game;
 
     this.inputQueue = [];
@@ -104,8 +110,8 @@ class Pacman {
     const grid = this.game.grid;
 
     // only turn when aligned with the grid
-    const alignedX = Math.abs(this.x - Math.round(this.x)) < this.speed;
-    const alignedY = Math.abs(this.y - Math.round(this.y)) < this.speed;
+    const alignedX = Math.abs(this.x - Math.round(this.x)) < SPEED;
+    const alignedY = Math.abs(this.y - Math.round(this.y)) < SPEED;
     if (newDir[0] !== 0 && !alignedY) return;
     if (newDir[1] !== 0 && !alignedX) return;
 
@@ -143,8 +149,8 @@ class Pacman {
       return;
     };
 
-    this.x += this.direction[0] * this.speed;
-    this.y += this.direction[1] * this.speed;
+    this.x += this.direction[0] * SPEED;
+    this.y += this.direction[1] * SPEED;
 
     const width = MAP[0].length-1;
 
@@ -155,6 +161,67 @@ class Pacman {
   step() {
     this.changeDirection();
     this.goForward();
+  }
+}
+
+class Ghost {
+  constructor(game, colour, x, y) {
+    this.colour = colour;
+    this.game = game;
+    this.x = x;
+    this.y = y;
+    
+    this.direction = this.computeDirection();
+  }
+
+  // returns the last full grid coord that the ghost was in
+  gridCoord() {
+    let col = this.direction[0] > 0 ? Math.floor(this.x) : Math.ceil(this.x);
+    let row = this.direction[1] > 0 ? Math.floor(this.y) : Math.ceil(this.y);
+    return [col, row];
+  }
+
+  draw(ctx) {
+    ctx.fillStyle = this.colour;
+    ctx.fillRect(TILESIZE*(this.x+DRAW_OFFSET[0]),
+      TILESIZE*(this.y+DRAW_OFFSET[1]),
+      TILESIZE, TILESIZE
+    );
+
+    // hide ghost as it wraps off the right
+    ctx.fillStyle = "#000";
+    ctx.fillRect(TILESIZE*(MAP[0].length-2),
+      TILESIZE*(this.y+DRAW_OFFSET[1]),
+      TILESIZE, TILESIZE
+    );
+  }
+
+  computeDirection() {
+    return Array.from({ length: 2 }, () => Math.floor(Math.random() * 3) - 1);
+  }
+
+  step() {
+    // TODO: maybe think of another way to handle the movement
+
+    // bloody floating points i swear
+    function isNearlyInteger(value, margin=0.05) {
+      return Math.abs(value - Math.round(value)) <= margin;
+    }
+
+    const onTile = isNearlyInteger(this.x) && isNearlyInteger(this.y);
+    if (onTile) {
+      this.direction = this.computeDirection();
+      this.x = Math.round(this.x);
+      this.y = Math.round(this.y);
+    }
+
+    this.x += this.direction[0] * SPEED;
+    this.y += this.direction[1] * SPEED;
+
+    const width = MAP[0].length-1;
+
+    if (this.x < 0) this.x = width;
+    if (this.x > width) this.x = 0;
   }
 }
 
@@ -177,6 +244,12 @@ class Game {
     );
 
     this.pacman = new Pacman(this);
+
+    this.blinky = new Ghost(this, BLINKY, 14.5, 11);
+    this.pinky  = new Ghost(this, PINKY,  14.5, 14);
+    this.inky   = new Ghost(this, INKY,   13, 14);
+    this.clyde  = new Ghost(this, CLYDE,  16, 14);
+    this.ghosts = [this.blinky, this.pinky, this.inky, this.clyde];
 
     window.addEventListener("resize", () => this.onResize());
     this.onResize();
@@ -226,10 +299,14 @@ class Game {
     }
 
     this.pacman.draw(this.ctx);
+    for (let i = 0; i < this.ghosts.length; i++)
+      this.ghosts[i].draw(this.ctx);
   }
 
   step() {
-    this.pacman.step()
+    this.pacman.step();
+    for (let i = 0; i < this.ghosts.length; i++)
+      this.ghosts[i].step();
   }
 
   frame() {
