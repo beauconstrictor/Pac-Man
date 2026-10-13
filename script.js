@@ -34,7 +34,7 @@ const MAP = [
   "#######.##### ## #####.#######",
   "#     #.##### ## #####.#     #",
   "#     #.##          ##.#     #",
-  "#     #.## ######## ##.#     #",
+  "#     #.## ###  ### ##.#     #",
   "#######.## #      # ##.#######",
   "           #      #           ",
   "#######.## #      # ##.#######",
@@ -144,8 +144,10 @@ class Pacman {
     const coord = this.nextGridCoord();
     const nextTile = grid[coord[1]][coord[0]];
 
-    if (nextTile == WALL) {
+    if (nextTile === WALL) {
       this.direction = [0, 0];
+      this.x = Math.round(this.x);
+      this.y = Math.round(this.y);
       return;
     };
 
@@ -176,8 +178,8 @@ class Ghost {
 
   // returns the last full grid coord that the ghost was in
   gridCoord() {
-    let col = this.direction[0] > 0 ? Math.floor(this.x) : Math.ceil(this.x);
-    let row = this.direction[1] > 0 ? Math.floor(this.y) : Math.ceil(this.y);
+    let col = Math.round(this.x);
+    let row = Math.round(this.y);
     return [col, row];
   }
 
@@ -197,8 +199,87 @@ class Ghost {
   }
 
   computeDirection() {
-    return Array.from({ length: 2 }, () => Math.floor(Math.random() * 3) - 1);
+    const target = this.game.pacman.gridCoord();
+    const start  = this.gridCoord();
+
+    // already at target
+    if (target[0] == start[0] && target[1] == start[1])
+      return [0, 0];
+
+    function g(cell) {
+      let length = 0;
+      while (cell) {
+        length++;
+        cell = cell.prev;
+      }
+      return length;
+    }
+
+    function h(cell) {
+      // manhattan distance
+      const dx = Math.abs(cell.coord[0] - target[0]);
+      const dy = Math.abs(cell.coord[1] - target[1]);
+      return dx + dy;
+    }
+
+    function f(cell) {
+      return g(cell) + h(cell);
+    }
+
+    const open   = [];
+    const closed = [];
+
+    open.push({ coord: start, prev: null });
+
+    while (open.length > 0) {
+      open.sort((a, b) => f(a) - f(b));
+      const cell = open.shift();
+      closed.push(cell);
+
+      const directions = [[1, 0], [0, 1], [-1, 0], [0, -1]];
+      for (let i = 0; i < directions.length; i++) {
+        const d = directions[i];
+        const newCoord = [cell.coord[0] + d[0], cell.coord[1] + d[1]];
+
+        if (newCoord[0] < 0)
+          continue;
+        if (newCoord[1] < 0 || newCoord[1] >= this.game.grid.length)
+          continue;
+
+        const cellType = this.game.grid[newCoord[1]][newCoord[0]];
+        if (cellType == WALL) continue;
+
+        if (open.some(c => c.coord[0] === newCoord[0] &&
+            c.coord[1] === newCoord[1]))
+          continue;
+        if (closed.some(c => c.coord[0] === newCoord[0] &&
+            c.coord[1] === newCoord[1]))
+          continue;
+
+        const newCell = { coord: newCoord, prev: cell };
+        
+        if (newCoord[0] === target[0] && newCoord[1] === target[1]) {
+          let pathCell = newCell;
+          while (pathCell.prev.prev)
+            pathCell = pathCell.prev;
+          const dx = pathCell.coord[0] - start[0];
+          const dy = pathCell.coord[1] - start[1];
+
+          console.log(dx, dy);
+          return [dx, dy];
+        } else {
+          open.push(newCell);
+        }
+      }
+    }
+
+    alert("error: no route found to pac-man!");
+    return [0, 0];
   }
+
+  // computeDirection() {
+  //   return Array.from({ length: 2 }, () => Math.floor(Math.random() * 3) - 1);
+  // }
 
   step() {
     // TODO: maybe think of another way to handle the movement
@@ -245,8 +326,8 @@ class Game {
 
     this.pacman = new Pacman(this);
 
-    this.blinky = new Ghost(this, BLINKY, 14.5, 11);
-    this.pinky  = new Ghost(this, PINKY,  14.5, 14);
+    this.blinky = new Ghost(this, BLINKY, 14, 11);
+    this.pinky  = new Ghost(this, PINKY,  14, 14);
     this.inky   = new Ghost(this, INKY,   13, 14);
     this.clyde  = new Ghost(this, CLYDE,  16, 14);
     this.ghosts = [this.blinky, this.pinky, this.inky, this.clyde];
