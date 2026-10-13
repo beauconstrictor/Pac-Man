@@ -18,6 +18,7 @@ const INKY = "#00ffff";
 const CLYDE = "#ffb852";
 
 const CLYDE_HOME = [2, 29];
+const PINKY_LOOKAHEAD = 2;
 
 const SPEED = 1/15;
 
@@ -37,15 +38,15 @@ const MAP = [
   "##.####.##.########.##.####.##",
   "##......##....##....##......##",
   "#######.##### ## #####.#######",
-  "#     #.##### ## #####.#     #",
-  "#     #.##          ##.#     #",
-  "#     #.## ###  ### ##.#     #",
+  "#######.##### ## #####.#######",
+  "#######.##          ##.#######",
+  "#######.## ###  ### ##.#######",
   "#######.## #      # ##.#######",
   "           #      #           ",
   "#######.## #      # ##.#######",
-  "#     #.## ######## ##.#     #",
-  "#     #.##          ##.#     #",
-  "#     #.## ######## ##.#     #",
+  "#######.## ######## ##.#######",
+  "#######.##          ##.#######",
+  "#######.## ######## ##.#######",
   "#######.## ######## ##.#######",
   "##............##............##",
   "##.####.#####.##.#####.####.##",
@@ -89,8 +90,8 @@ class Pacman {
   draw(ctx) {
     ctx.fillStyle = PACMAN;
     ctx.beginPath();
-    const xpx = this.x * TILESIZE - TILESIZE/2;
-    const ypx = this.y * TILESIZE + TILESIZE/2;
+    const xpx = (this.x+DRAW_OFFSET[0]) * TILESIZE + TILESIZE/2;
+    const ypx = (this.y+DRAW_OFFSET[1]) * TILESIZE + TILESIZE/2;
     ctx.arc(xpx, ypx, TILESIZE/2, Math.PI * 2, 0);
     ctx.fill();
 
@@ -328,6 +329,35 @@ class Clyde extends Ghost {
 
 class Pinky extends Ghost {
   computeDirection() {
+    const pacman = this.game.pacman;
+
+    let target;
+    let lookahead = PINKY_LOOKAHEAD+1;
+    while (lookahead >= 0) {
+      lookahead--;
+      target = this.game.pacman.gridCoord();
+      target[0] += pacman.direction[0] * lookahead;
+      target[1] += pacman.direction[1] * lookahead;
+
+      const ctx = document.querySelector("canvas").getContext("2d");
+
+      ctx.fillStyle = "#ffffffaa";
+      ctx.fillRect((target[0]+DRAW_OFFSET[0])*TILESIZE,
+                   (target[1]+DRAW_OFFSET[1])*TILESIZE,
+                   TILESIZE, TILESIZE)
+
+      if (target[0] < 0 || target[0] >= this.game.grid[0].length)
+        continue
+      if (target[1] < 0 || target[1] >= this.game.grid.length)
+        continue
+
+      const cellType = this.game.grid[target[1]][target[0]];
+      if (cellType != WALL) break;
+    }
+
+    console.log(this.game.pacman.gridCoord(), target);
+
+    return this.aStar(target);
   }
 }
 
@@ -352,7 +382,7 @@ class Game {
     this.pacman = new Pacman(this);
 
     this.blinky = new Ghost(this, BLINKY, 14, 11);
-    this.pinky  = new Ghost(this, PINKY,  14, 14);
+    this.pinky  = new Pinky(this, PINKY,  14, 14);
     this.inky   = new Ghost(this, INKY,   13, 14);
     this.clyde  = new Clyde(this, CLYDE,  16, 14);
     this.ghosts = [this.blinky, this.pinky, this.inky, this.clyde];
@@ -390,9 +420,6 @@ class Game {
   }
 
   draw() {
-    this.ctx.fillStyle = "#000";
-    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-
     for (let y = 0; y < this.grid.length; y++) {
       const row = this.grid[y];
       for (let x = 0; x < row.length-1; x++) {
@@ -425,9 +452,17 @@ class Game {
       this.ghosts[i].step();
   }
 
+  clear() {
+    this.ctx.fillStyle = "#000";
+    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+  }
+
   frame() {
-    this.step()
+    // an odd order, but this means we can draw debug overlays from
+    // within step
+    this.clear();
     this.draw();
+    this.step()
     requestAnimationFrame(() => this.frame());
   }
 }
