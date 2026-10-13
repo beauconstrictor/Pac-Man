@@ -88,10 +88,11 @@ class Pacman {
 
   draw(ctx) {
     ctx.fillStyle = PACMAN;
-    ctx.fillRect(TILESIZE*(this.x+DRAW_OFFSET[0]),
-      TILESIZE*(this.y+DRAW_OFFSET[1]),
-      TILESIZE, TILESIZE
-    );
+    ctx.beginPath();
+    const xpx = this.x * TILESIZE - TILESIZE/2;
+    const ypx = this.y * TILESIZE + TILESIZE/2;
+    ctx.arc(xpx, ypx, TILESIZE/2, Math.PI * 2, 0);
+    ctx.fill();
 
     // hide pacman as he wraps off the right
     ctx.fillStyle = "#000";
@@ -268,8 +269,6 @@ class Ghost {
             pathCell = pathCell.prev;
           const dx = pathCell.coord[0] - start[0];
           const dy = pathCell.coord[1] - start[1];
-
-          console.log(dx, dy);
           return [dx, dy];
         } else {
           open.push(newCell);
@@ -324,6 +323,11 @@ class Clyde extends Ghost {
     } else {
       return this.aStar(CLYDE_HOME);
     }
+  }
+}
+
+class Pinky extends Ghost {
+  computeDirection() {
   }
 }
 
