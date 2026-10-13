@@ -17,9 +17,14 @@ const PINKY = "#ffb8ff";
 const INKY = "#00ffff";
 const CLYDE = "#ffb852";
 
+const CLYDE_HOME = [2, 29];
+
 const SPEED = 1/15;
 
 const TILESIZE = 24;
+const PELLET_SIZE = 7;
+const POWERUP_SIZE = 4;
+
 
 const MAP = [
   "##############################",
@@ -198,8 +203,7 @@ class Ghost {
     );
   }
 
-  computeDirection() {
-    const target = this.game.pacman.gridCoord();
+  aStar(target) {
     const start  = this.gridCoord();
 
     // already at target
@@ -277,9 +281,10 @@ class Ghost {
     return [0, 0];
   }
 
-  // computeDirection() {
-  //   return Array.from({ length: 2 }, () => Math.floor(Math.random() * 3) - 1);
-  // }
+  computeDirection() {
+    const target = this.game.pacman.gridCoord();
+    return this.aStar(target);
+  }
 
   step() {
     // TODO: maybe think of another way to handle the movement
@@ -306,6 +311,22 @@ class Ghost {
   }
 }
 
+class Clyde extends Ghost {
+  computeDirection() {
+    const pacman = this.game.pacman.gridCoord();
+    const start  = this.gridCoord();
+    const dx = Math.abs(start[0] - pacman[0]);
+    const dy = Math.abs(start[1] - pacman[1]);
+    const dist_sq = dx**2 + dy**2
+
+    if (dist_sq > 8**2) {
+      return this.aStar(pacman);
+    } else {
+      return this.aStar(CLYDE_HOME);
+    }
+  }
+}
+
 class Game {
   constructor() {
     this.canvas = document.querySelector("canvas");
@@ -329,7 +350,7 @@ class Game {
     this.blinky = new Ghost(this, BLINKY, 14, 11);
     this.pinky  = new Ghost(this, PINKY,  14, 14);
     this.inky   = new Ghost(this, INKY,   13, 14);
-    this.clyde  = new Ghost(this, CLYDE,  16, 14);
+    this.clyde  = new Clyde(this, CLYDE,  16, 14);
     this.ghosts = [this.blinky, this.pinky, this.inky, this.clyde];
 
     window.addEventListener("resize", () => this.onResize());
@@ -373,9 +394,19 @@ class Game {
       for (let x = 0; x < row.length-1; x++) {
         const cell   = row[x];
         this.ctx.fillStyle = COLOURS[cell];
-        this.ctx.fillRect(TILESIZE*(x+DRAW_OFFSET[0]),
-          TILESIZE*(y+DRAW_OFFSET[1]),
-          TILESIZE, TILESIZE);
+
+        const xpx = TILESIZE * (x+DRAW_OFFSET[0]);
+        const ypx = TILESIZE * (y+DRAW_OFFSET[1]);
+
+        if (cell === PELLET || cell == POWERUP) {
+          const size = cell === PELLET ? PELLET_SIZE : POWERUP_SIZE;
+          this.ctx.beginPath();
+          this.ctx.arc(xpx + TILESIZE/2, ypx + TILESIZE/2,
+            TILESIZE/size, 0, Math.PI * 2);
+          this.ctx.fill();
+        } else {
+          this.ctx.fillRect(xpx, ypx, TILESIZE, TILESIZE);
+        }
       }
     }
 
