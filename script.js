@@ -2,12 +2,14 @@ const WALL    = 1;
 const PATH    = 0;
 const PELLET  = 2;
 const POWERUP = 3;
+const GATE    = 4;
 
 const COLOURS = {
-  [WALL]:   "#2121de",
-  [PATH]:   "#000000",
-  [PELLET]: "#ffb8ae",
+  [WALL]:    "#2121de",
+  [PATH]:    "#000000",
+  [PELLET]:  "#ffb8ae",
   [POWERUP]: "#ffb8ae",
+  [GATE]:    "#bbaa00",
 };
 
 const PACMAN    = "#ffff00";
@@ -18,14 +20,16 @@ const INKY = "#00ffff";
 const CLYDE = "#ffb852";
 
 const CLYDE_HOME = [2, 29];
+const CLYDE_CHASE_DIST = 8;
 const PINKY_LOOKAHEAD = 2;
+const INKY_HOME  = [2, 1];
+const INKY_CHASE_DIST  = 2;
 
 const SPEED = 1/15;
 
 const TILESIZE = 24;
 const PELLET_SIZE = 7;
 const POWERUP_SIZE = 4;
-
 
 const MAP = [
   "##############################",
@@ -40,7 +44,7 @@ const MAP = [
   "#######.##### ## #####.#######",
   "#######.##### ## #####.#######",
   "#######.##          ##.#######",
-  "#######.## ###  ### ##.#######",
+  "#######.## ###--### ##.#######",
   "#######.## #      # ##.#######",
   "           #      #           ",
   "#######.## #      # ##.#######",
@@ -128,7 +132,8 @@ class Pacman {
     const nextCol = col + newDir[0];
     const nextRow = row + newDir[1];
 
-    if (grid[nextRow]?.[nextCol] === WALL) return;
+    const cellType = grid[nextRow]?.[nextCol];
+    if (cellType === WALL || cellType === GATE) return;
 
     // avoid floating point rounding drift
     this.x = col;
@@ -319,10 +324,27 @@ class Clyde extends Ghost {
     const dy = Math.abs(start[1] - pacman[1]);
     const dist_sq = dx**2 + dy**2
 
-    if (dist_sq > 8**2) {
+    if (dist_sq > CLYDE_CHASE_DIST**2) {
       return this.aStar(pacman);
     } else {
       return this.aStar(CLYDE_HOME);
+    }
+  }
+}
+
+// TODO: implement the ai like it should be, not whatever this is
+class Inky extends Ghost {
+  computeDirection() {
+    const blinky = this.game.blinky.gridCoord();
+    const start  = this.gridCoord();
+    const dx = Math.abs(start[0] - blinky[0]);
+    const dy = Math.abs(start[1] - blinky[1]);
+    const dist_sq = dx**2 + dy**2
+
+    if (dist_sq > INKY_CHASE_DIST**2) {
+      return this.aStar(blinky);
+    } else {
+      return this.aStar(INKY_HOME);
     }
   }
 }
@@ -341,11 +363,6 @@ class Pinky extends Ghost {
 
       const ctx = document.querySelector("canvas").getContext("2d");
 
-      ctx.fillStyle = "#ffffffaa";
-      ctx.fillRect((target[0]+DRAW_OFFSET[0])*TILESIZE,
-                   (target[1]+DRAW_OFFSET[1])*TILESIZE,
-                   TILESIZE, TILESIZE)
-
       if (target[0] < 0 || target[0] >= this.game.grid[0].length)
         continue
       if (target[1] < 0 || target[1] >= this.game.grid.length)
@@ -354,8 +371,6 @@ class Pinky extends Ghost {
       const cellType = this.game.grid[target[1]][target[0]];
       if (cellType != WALL) break;
     }
-
-    console.log(this.game.pacman.gridCoord(), target);
 
     return this.aStar(target);
   }
@@ -375,6 +390,7 @@ class Game {
           case ".": return PELLET;
           case "o": return POWERUP;
           case " ": return PATH;
+          case "-": return GATE;
         }
       })
     );
@@ -383,7 +399,7 @@ class Game {
 
     this.blinky = new Ghost(this, BLINKY, 14, 11);
     this.pinky  = new Pinky(this, PINKY,  14, 14);
-    this.inky   = new Ghost(this, INKY,   13, 14);
+    this.inky   = new Inky(this, INKY,   13, 14);
     this.clyde  = new Clyde(this, CLYDE,  16, 14);
     this.ghosts = [this.blinky, this.pinky, this.inky, this.clyde];
 
@@ -429,12 +445,14 @@ class Game {
         const xpx = TILESIZE * (x+DRAW_OFFSET[0]);
         const ypx = TILESIZE * (y+DRAW_OFFSET[1]);
 
-        if (cell === PELLET || cell == POWERUP) {
+        if (cell === PELLET || cell === POWERUP) {
           const size = cell === PELLET ? PELLET_SIZE : POWERUP_SIZE;
           this.ctx.beginPath();
           this.ctx.arc(xpx + TILESIZE/2, ypx + TILESIZE/2,
             TILESIZE/size, 0, Math.PI * 2);
           this.ctx.fill();
+        } else if (cell === GATE) {
+          this.ctx.fillRect(xpx, ypx+TILESIZE/3, TILESIZE, TILESIZE/3);
         } else {
           this.ctx.fillRect(xpx, ypx, TILESIZE, TILESIZE);
         }

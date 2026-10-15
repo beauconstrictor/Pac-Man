@@ -1,0 +1,38 @@
+[I 261015 21:40:53 server:331] Serving on http://127.0.0.1:35729
+Traceback (most recent call last):
+  File "/usr/bin/liv[I 261015 21:40:55 server:358] Shutting down...
+))
+             ~~~~^^
+  File "/usr/lib/python3.14/site-packages/livereload/cli.py", line 60, in main
+    server.serve(host=args.host, port=args.port, root=args.directory,
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                 open_url_delay=args.open_url_delay)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.14/site-packages/livereload/server.py", line 335, in serve
+    self.application(
+    ~~~~~~~~~~~~~~~~^
+        port, host, liveport=liveport, debug=debug, live_css=live_css)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.14/site-packages/livereload/server.py", line 287, in application
+    app.listen(port, address=host)
+    ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib64/python3.14/site-packages/tornado/web.py", line 2302, in listen
+    server.listen(
+    ~~~~~~~~~~~~~^
+        port,
+        ^^^^^
+    ...<4 lines>...
+        reuse_port=reuse_port,
+        ^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/usr/lib64/python3.14/site-packages/tornado/tcpserver.py", line 183, in listen
+    sockets = bind_sockets(
+        port,
+    ...<4 lines>...
+        reuse_port=reuse_port,
+    )
+  File "/usr/lib64/python3.14/site-packages/tornado/netutil.py", line 162, in bind_sockets
+    sock.bind(sockaddr)
+    ~~~~~~~~~^^^^^^^^^^
+OSError: [Errno 98] Address already in use
