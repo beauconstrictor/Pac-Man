@@ -5,12 +5,15 @@ const POWERUP = 3;
 const GATE    = 4;
 
 const COLOURS = {
-  [WALL]:    "#2121de",
+  [WALL]:    "#2121de00",
   [PATH]:    "#000000",
   [PELLET]:  "#ffb8ae",
   [POWERUP]: "#ffb8ae",
-  [GATE]:    "#bbaa00",
+  [GATE]:    "#eee",
 };
+
+const BG_OFFSET = [-0.9,    -0.9];
+const BG_SCALE  = [1.05,    1.1];
 
 const PACMAN    = "#ffff00";
 
@@ -395,6 +398,9 @@ class Game {
       })
     );
 
+    this.mazeImg = new Image();
+    this.mazeImg.src = "maze.jpg";
+
     this.pacman = new Pacman(this);
 
     this.blinky = new Ghost(this, BLINKY, 14, 11);
@@ -435,7 +441,14 @@ class Game {
     }
   }
 
-  draw() {
+  drawMaze() {
+    this.ctx.drawImage(this.mazeImg,
+      BG_OFFSET[0] * TILESIZE,
+      BG_OFFSET[1] * TILESIZE,
+      TILESIZE * this.grid[0].length * BG_SCALE[0],
+      TILESIZE * this.grid.length * BG_SCALE[1],
+    );
+
     for (let y = 0; y < this.grid.length; y++) {
       const row = this.grid[y];
       for (let x = 0; x < row.length-1; x++) {
@@ -452,13 +465,20 @@ class Game {
             TILESIZE/size, 0, Math.PI * 2);
           this.ctx.fill();
         } else if (cell === GATE) {
-          this.ctx.fillRect(xpx, ypx+TILESIZE/3, TILESIZE, TILESIZE/3);
+          this.ctx.fillRect(
+            xpx-TILESIZE*0.4,
+            ypx+TILESIZE*0.8,
+            TILESIZE*1.6,
+            TILESIZE/6);
         } else {
           this.ctx.fillRect(xpx, ypx, TILESIZE, TILESIZE);
         }
       }
     }
+  }
 
+  draw() {
+    this.drawMaze();
     this.pacman.draw(this.ctx);
     for (let i = 0; i < this.ghosts.length; i++)
       this.ghosts[i].draw(this.ctx);
