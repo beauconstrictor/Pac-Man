@@ -9,11 +9,12 @@ const COLOURS = {
   [PATH]:    "#000000",
   [PELLET]:  "#ffb8ae",
   [POWERUP]: "#ffb8ae",
-  [GATE]:    "#eee",
+  [GATE]:    "#eeeeee",
 };
 
-const BG_OFFSET = [-0.9,    -0.9];
-const BG_SCALE  = [1.05,    1.1];
+const BG_OFFSET = [-0.09,    0];
+const BG_SCALE  = [0.94,    1];
+const BG_SPRITE = [128, 0, 113, 125];
 
 const PACMAN    = "#ffff00";
 
@@ -383,7 +384,6 @@ class Game {
   constructor() {
     this.canvas = document.querySelector("canvas");
     this.ctx = this.canvas.getContext("2d");
-
     this.ctx.imageSmoothingEnabled = false;
 
     this.grid = MAP.map(row =>
@@ -399,7 +399,7 @@ class Game {
     );
 
     this.mazeImg = new Image();
-    this.mazeImg.src = "maze.jpg";
+    this.mazeImg.src = "sprites.png";
 
     this.pacman = new Pacman(this);
 
@@ -443,11 +443,14 @@ class Game {
 
   drawMaze() {
     this.ctx.drawImage(this.mazeImg,
+      ...BG_SPRITE,
       BG_OFFSET[0] * TILESIZE,
       BG_OFFSET[1] * TILESIZE,
       TILESIZE * this.grid[0].length * BG_SCALE[0],
       TILESIZE * this.grid.length * BG_SCALE[1],
     );
+
+    this.ctx.globalAlpha = 1;
 
     for (let y = 0; y < this.grid.length; y++) {
       const row = this.grid[y];
@@ -465,16 +468,14 @@ class Game {
             TILESIZE/size, 0, Math.PI * 2);
           this.ctx.fill();
         } else if (cell === GATE) {
-          this.ctx.fillRect(
-            xpx-TILESIZE*0.4,
-            ypx+TILESIZE*0.8,
-            TILESIZE*1.6,
-            TILESIZE/6);
+          // the gate is in the sprite sheet
         } else {
           this.ctx.fillRect(xpx, ypx, TILESIZE, TILESIZE);
         }
       }
     }
+
+    this.ctx.globalAlpha = 1;
   }
 
   draw() {
